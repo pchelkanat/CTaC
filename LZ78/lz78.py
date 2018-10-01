@@ -1,4 +1,7 @@
 def compressLZ78(data):
+
+    print("compresing")
+
     result = ""
     buff = ""
     dict = {}
@@ -6,21 +9,21 @@ def compressLZ78(data):
     pos = 1
 
     while index != len(data):
-        buff += data[index]
+        buff += data[index]#посимвольно вправо
         #print("buff", buff)
-        if buff not in dict:
+        if buff not in dict: #заносим в словарь
             dict[buff] = pos
             pos += 1
             if len(buff) == 1:
                 result += str(0) + "~" + str(buff) + '\n'
             elif len(buff) == 0:
                 result += str(0) + "~" + str(" ") + '\n'
-            else:
-                char = buff[:-1]
-                position = dict[char]
+            else: #если буфер вмещает более одного символа
+                char = buff[:-1] #
+                position = dict[char] #найдем позицию по индексу из словаря
                 #print(buff, char)
-                result += str(position) + "~" + str(buff[-1]) + "\n"
-            buff = ""
+                result += str(position) + "~" + str(buff[-1]) + "\n" #пишем последний символ буфера
+            buff = ""#обнуляем
         index += 1
     #print("dect en", dict)
     output.write(result)
@@ -37,18 +40,21 @@ def convertToList(data):
     return res
 
 def decompressLZ78(data):
+
+    print("decompresing")
+
     result = ""
     dict = {}
     pos = 1
     size=0
     conv = convertToList(data)
     while size < len(conv):
-            index, letter=conv[size][0], conv[size][1]
+            index, letter=conv[size][0], conv[size][1] #считываем построчно
             if index==0:
-                char=letter
+                char=letter #просто символ
             else:
-                char=dict[index]+letter
-            dict[pos]=char
+                char=dict[index]+letter #символ/строка из словаря
+            dict[pos]=char #создаем "словарь"
             pos+=1
             #print(dict)
             result+=char
@@ -61,9 +67,9 @@ def decompressLZ78(data):
 
 ##______COMPRESSING______##
 
-fileName = "test.txt"
+fileName = "Zlodeya.txt"
 input = open(fileName, encoding='utf-8', mode='r')
-output = open("lz78-" + fileName, encoding='utf-8', mode='w')
+output = open("compress/lz78-" + fileName, encoding='utf-8', mode='w')
 
 data = "".join(input.readlines()).replace("\n"," ")
 # print(data)
@@ -77,8 +83,8 @@ output.close()
 
 ##______DECOMPRESSING______##
 
-input2 = open("lz78-"+fileName, encoding='utf-8', mode='r')
-output2 = open("dec-lz78-" + fileName, encoding='utf-8', mode='w')
+input2 = open("compress/lz78-"+fileName, encoding='utf-8', mode='r')
+output2 = open("decompress/dec-lz78-" + fileName, encoding='utf-8', mode='w')
 
 data2 = "".join(input2.readlines())
 #print(data2)
