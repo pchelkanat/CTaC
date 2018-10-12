@@ -79,7 +79,7 @@ Si_box = np.array(
 # удаление проверочных битов ключа + перестановка
 CD_key = np.array([57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18,
                    10, 2, 59, 51, 43, 35, 27, 19, 11, 3, 60, 52, 44, 36,  # C
-                   36, 55, 47, 39, 31, 23, 15, 7, 62, 54, 46, 38, 30, 22,
+                   63, 55, 47, 39, 31, 23, 15, 7, 62, 54, 46, 38, 30, 22,
                    14, 6, 61, 53, 45, 37, 29, 21, 13, 5, 28, 20, 12, 4])  # D
 
 # левый циклический сдвиг
@@ -94,11 +94,9 @@ Zip_key = np.array([14, 17, 11, 24, 1, 5, 3, 28,
                     34, 53, 46, 42, 50, 36, 29, 32])
 
 
-
-
 def bin_to_hex(list):
-    t="".join(str(i) for i in list)
-    res=hex(int(t,2))
+    t = "".join(str(i) for i in list)
+    res = hex(int(t, 2))
     return res
 
 
@@ -111,11 +109,13 @@ def save_dict(bin_text):
         dict[pos] = i
     return dict
 
+
 # текст + перестановка
 def text_IP(dict, IP):
     text = []
     for i in IP: text.append(dict[i])
     return text
+
 
 # расширение R для раунда
 def P_ex(R):
@@ -124,17 +124,18 @@ def P_ex(R):
     for i in Pi_box: R_ex.append(dictR[i])
     return R_ex
 
-#Вычисление позиции в S-боксах и нахождение шифрообознаения
+
+# Вычисление позиции в S-боксах и нахождение шифрообознаения
 def S_box(listR):
-    R_new = np.ones((8,4), dtype=np.uint8)
+    R_new = np.ones((8, 4), dtype=np.uint8)
     for i in range(8):  # i 0..7 соответствует в Si_box Si
-        #print("rr", i, listR[i])
+        # print("rr", i, listR[i])
         m = int(str(listR[i][0]) + str(listR[i][5]), base=2)  # 0..3 соответствует Si[m]
         l = int(str(listR[i][1]) + str(listR[i][2]) + str(listR[i][3]) + str(listR[i][4]), base=2)
         num = Si_box[i][m][l]
-        #print(num)
-        R_new[i]=np.array((list(bin(num)[2:].zfill(4))), dtype=np.uint8)
-    #print("S_box", R_new, np.shape(R_new))
+        # print(num)
+        R_new[i] = np.array((list(bin(num)[2:].zfill(4))), dtype=np.uint8)
+    # print("S_box", R_new, np.shape(R_new))
     return R_new
 
 
@@ -149,15 +150,16 @@ def P2(R_new):
 
 # генерация ключей для раундов
 def gen_keys(key):
-    keys = []
+    keyCD = []
     dictK = save_dict(key)
     for i in CD_key:
-        keys.append(dictK[i])  # удаление проверочных битов ключа + перестановка
-    key_C = keys[:28]  # 0..27
-    key_D = keys[28:]
-    #print("keyCD", type(key0_D), key0_C, key0_D)
+        keyCD.append(dictK[i])  # удаление проверочных битов ключа + перестановка
+    key_C = keyCD[:28]  # 0..27
+    key_D = keyCD[28:]
+    # print("keyCD", type(key_D), key_C, key_D)
 
-    keys = keys[:48]  # обрежем для раундовых
+    keys = np.zeros((16, 48), dtype=np.uint8)  # раундовые ключи 0..15 -> !нужно вычитать при функции раунда
+    t = 0
     for i in CD_shift:
         key_C = np.hstack((key_C[i:], key_C[:i]))  # смещение влево на i бит
         key_D = np.hstack((key_D[i:], key_D[:i]))
@@ -167,10 +169,9 @@ def gen_keys(key):
         tempR = []
         for k in Zip_key:
             tempR.append(dictZip[k])
-
-        # общий массив для раундов, причем 0-й элемент обрезанный key0_C+D (не сжатый), а остальные правильные
-        keys = np.vstack((keys, tempR))
-    #print("keys", type(keys), keys)
+        keys[t] = tempR
+        t += 1
+    # print("keys", type(keys), np.shape(keys))
     return keys
 
 
@@ -182,33 +183,34 @@ def func(R, keyi):
     listR = np.array([res[0:6], res[6:12], res[12:18], res[18:24],
                       res[24:30], res[30:36], res[36:42], res[42:48]])
     # print("listR", listR, np.shape(listR))
-    R_new = np.hstack(S_box(listR)[i] for i in range (8))
-    #print("Rnew", R_new, len(R_new))
+    R_new = np.hstack(S_box(listR)[i] for i in range(8))
+    # print("Rnew", R_new, len(R_new))
 
     R2 = np.array(P2(R_new))
-    #print("R2",R2, len(R2))
+    # print("R2",R2, len(R2))
     return R2
 
 
 # Фейстель
 def Feistel(L, R, keys):
-    Li=np.array([L])
-    Ri=np.array([R])#
-    for i in range(1,17):
-        Li=np.vstack((Li,Ri[i-1]))
-        temp= Li[i-1] ^ func(Ri[i-1], keys[i])
-        Ri=np.vstack((Ri,temp))
-        print("round", i, "Li", bin_to_hex(Li[i]), "Ri", bin_to_hex(Ri[i]),"key", bin_to_hex(keys[i]))
+    Li = np.array([L])
+    Ri = np.array([R])  #
+
+    print("             L0:", bin_to_hex(Li[0]), "    R0:", bin_to_hex(Ri[0]))
+    for i in range(1, 17):
+        Li = np.vstack((Li, Ri[i - 1]))
+        temp = Li[i - 1] ^ func(Ri[i - 1], keys[i - 1])
+        Ri = np.vstack((Ri, temp))
+        print("round:", i, "    Li:", bin_to_hex(Li[i]), "    Ri:", bin_to_hex(Ri[i]), "    key:",
+              bin_to_hex(keys[i - 1]))
     return Li[-1], Ri[-1]
 
 
 bit = 64
 bit_key = 48
 
-text = 0x123456ABCD132536  # input()
-key = 0xAABB09182736CCDD
-
-
+text = 0x123456ABCD132536  # 0x5890DB2A46EBDC24 # input()
+key = 0xAABB09182736CCDD  # 0xAC49FB4120DFEB23 #
 
 # ** -> bin, убираем 0b, расширяем до 64 бит -> список с char -> np.array с uint8 (для того, чтобы потом xor'ить)
 bin_text = np.array(list(bin(text)[2:].zfill(64)), dtype=np.uint8)
@@ -221,16 +223,15 @@ IP1_text = text_IP(dict, IP1)
 L = np.array(IP1_text[:32])
 R = np.array(IP1_text[32:])
 Ln, Rn = Feistel(L, R, new_keys)
-resFeistel=np.hstack((Ln,Rn))
-dict2=save_dict(resFeistel)
-IP2_text=text_IP(dict2,IP2)
+resFeistel = np.hstack((Rn, Ln))  # после 16 раунда объединяются в R16L16
+dict2 = save_dict(resFeistel)
+IP2_text = text_IP(dict2, IP2)
 
 print("bin_text", bin_text, len(bin_text))
 print("dict", dict)
 print("IP1_text", bin_to_hex(IP1_text))
 print("L0, R0", L, R, len(L))
-#print("newkeys for rounds", new_keys)
-#print("Ln", Ln,"Rn",Rn, len(Ln))
-#print("result after rounds", resFeistel)
-print("IP2_text",bin_to_hex(IP2_text))
-
+# print("newkeys for rounds", new_keys)
+# print("Ln", Ln,"Rn",Rn, len(Ln))
+# print("result after rounds", resFeistel)
+print("IP2_text", bin_to_hex(IP2_text))
