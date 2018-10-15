@@ -206,32 +206,77 @@ def Feistel(L, R, keys):
     return Li[-1], Ri[-1]
 
 
+def DES_enc(bin_text, new_keys):
+    # ** -> bin, убираем 0b, расширяем до 64 бит -> список с char -> np.array с uint8 (для того, чтобы потом xor'ить)
+
+    dict = save_dict(bin_text)
+    IP1_text = text_IP(dict, IP1)
+    L = np.array(IP1_text[:32])
+    R = np.array(IP1_text[32:])
+    Ln, Rn = Feistel(L, R, new_keys)
+    resFeistel = np.hstack((Rn, Ln))  # после 16 раунда объединяются в R16L16
+    dict2 = save_dict(resFeistel)
+    IP2_text = text_IP(dict2, IP2)
+
+    print(bin_to_hex((IP2_text)))
+    return IP2_text
+
+
+def DES_dec(cipher, keys):
+    new_keys = keys[::-1]
+
+    dict = save_dict(cipher)
+    IP1_text = text_IP(dict, IP1)
+    L = np.array(IP1_text[:32])
+    R = np.array(IP1_text[32:])
+    Ln, Rn = Feistel(L, R, new_keys)
+    resFeistel = np.hstack((Rn, Ln))  # после 16 раунда объединяются в R16L16
+    dict2 = save_dict(resFeistel)
+    IP2_text = text_IP(dict2, IP2)
+
+    print(bin_to_hex((IP2_text)))
+    return IP2_text
+
+
 bit = 64
 bit_key = 48
 
-text = 0x123456ABCD132536  # 0x5890DB2A46EBDC24 # input()
-key = 0xAABB09182736CCDD  # 0xAC49FB4120DFEB23 #
+text = 0x127AD6ABCD13B936  # 0x5890DB2A46EBDC24 # input()
+key1 = 0x54BB09182736CEFA  # 0xAC49FB4120DFEB23 #
+key2 = 0x1DAB348DF8025C54
+key3 = 0x95BE976A8C640351
+# print(text, type(text))
 
-# ** -> bin, убираем 0b, расширяем до 64 бит -> список с char -> np.array с uint8 (для того, чтобы потом xor'ить)
 bin_text = np.array(list(bin(text)[2:].zfill(64)), dtype=np.uint8)
-bin_key = np.array(list(bin(key)[2:].zfill(64)), dtype=np.uint8)
 
-new_keys = gen_keys(bin_key)
+bin_key1 = np.array(list(bin(key1)[2:].zfill(64)), dtype=np.uint8)
+bin_key2 = np.array(list(bin(key2)[2:].zfill(64)), dtype=np.uint8)
+bin_key3 = np.array(list(bin(key3)[2:].zfill(64)), dtype=np.uint8)
 
-dict = save_dict(bin_text)
-IP1_text = text_IP(dict, IP1)
-L = np.array(IP1_text[:32])
-R = np.array(IP1_text[32:])
-Ln, Rn = Feistel(L, R, new_keys)
-resFeistel = np.hstack((Rn, Ln))  # после 16 раунда объединяются в R16L16
-dict2 = save_dict(resFeistel)
-IP2_text = text_IP(dict2, IP2)
+new_keys1 = gen_keys(bin_key1)
+new_keys2 = gen_keys(bin_key2)
+new_keys3 = gen_keys(bin_key3)
 
-print("bin_text", bin_text, len(bin_text))
-print("dict", dict)
-print("IP1_text", bin_to_hex(IP1_text))
-print("L0, R0", L, R, len(L))
-# print("newkeys for rounds", new_keys)
-# print("Ln", Ln,"Rn",Rn, len(Ln))
-# print("result after rounds", resFeistel)
-print("IP2_text", bin_to_hex(IP2_text))
+print("             3DES-E Encrypt")
+cipher1 = DES_enc(bin_text, new_keys1)
+print()
+
+print("             3DES-D Encrypt")
+cipher2 = DES_dec(cipher1, new_keys2)
+print()
+
+print("             3DES-E Encrypt")
+cipher3 = DES_enc(cipher2, new_keys3)
+print()
+#####
+print("             3DES-D Decrypt")
+new_text1 = DES_dec(cipher3, new_keys3)
+print()
+
+print("             3DES-E Decrypt")
+new_text2 = DES_enc(new_text1, new_keys2)
+print()
+
+print("             3DES-D Decrypt")
+new_text3 = DES_dec(new_text2, new_keys1)
+print()
