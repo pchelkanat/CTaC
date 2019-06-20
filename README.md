@@ -1,6 +1,6 @@
 # CTaC
-Coding Theory and Cryptography course || Теория кодирования и криптография.
-> Различные методы симметричного шифрования и сжатия:
+Coding Theory and Cryptography course || Теория кодирования и криптография.<br>
+Различные методы симметричного шифрования и сжатия:
 * DES
 * 3DES (EDE)
 * LZ77, LZ78
